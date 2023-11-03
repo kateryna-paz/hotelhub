@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model comfort {
+  id               Int                @id @default(autoincrement())
+  name             String?            @db.VarChar(50)
+  comfortplushouse comfortplushouse[]
+}
+
+model comfortplushouse {
+  id         Int                      @id @default(autoincrement())
+  house_id   Int?
+  comfort_id Int?
+  status     comfortplushouse_status?
+  house      house?                   @relation(fields: [house_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "comfortplushouse_ibfk_1")
+  comfort    comfort?                 @relation(fields: [comfort_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "comfortplushouse_ibfk_2")
+
+  @@index([comfort_id], map: "comfort_id")
+  @@index([house_id], map: "house_id")
+}
+
+model hotel {
+  id          Int     @id @default(autoincrement())
+  name        String? @db.VarChar(50)
+  address     String? @db.VarChar(100)
+  roomN       Int?    @db.UnsignedSmallInt
+  placeN      Int?    @db.UnsignedSmallInt
+  description String? @db.VarChar(250)
+  contact_inf String? @db.VarChar(50)
+  room        room[]
+
+  @@index([name], map: "idx_hotel_name")
+}
+
+model house {
+  id                 Int                  @id @default(autoincrement())
+  address            String?              @db.VarChar(100)
+  name               String?              @db.VarChar(50)
+  roomN              Int?                 @db.UnsignedSmallInt
+  placeN             Int?                 @db.UnsignedSmallInt
+  description        String?              @db.VarChar(250)
+  contact_inf        String?              @db.VarChar(50)
+  status             house_status?
+  price              Int?                 @db.UnsignedSmallInt
+  comfortplushouse   comfortplushouse[]
+  reservation_object reservation_object[]
+
+  @@index([roomN, placeN], map: "idx_house_num")
+}
+
+model order_history {
+  id           Int       @id @default(autoincrement())
+  order_date   DateTime? @db.Date
+  total_amount Decimal?  @db.Decimal(10, 2)
+  user_id      Int?
+  user         user?     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "order_history_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model paycheck {
+  id             Int               @id @default(autoincrement())
+  reservation_id Int?
+  sum            Int?              @db.UnsignedSmallInt
+  date           DateTime?         @db.DateTime(0)
+  payType        paycheck_payType?
+  reservation    reservation?      @relation(fields: [reservation_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "paycheck_ibfk_1")
+
+  @@index([reservation_id], map: "reservation_id")
+}
+
+model reservation {
+  id                 Int                 @id @default(autoincrement())
+  user_id            Int?
+  object_id          Int?
+  start_date         DateTime?           @db.Date
+  end_date           DateTime?           @db.Date
+  status             reservation_status?
+  sum                Int?                @db.UnsignedSmallInt
+  paycheck           paycheck[]
+  user               user?               @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "reservation_ibfk_1")
+  reservation_object reservation_object? @relation(fields: [object_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "reservation_ibfk_2")
+
+  @@index([object_id], map: "object_id")
+  @@index([user_id], map: "user_id")
+}
+
+model reservation_object {
+  id          Int           @id @default(autoincrement())
+  house_id    Int?
+  room_id     Int?
+  reservation reservation[]
+  house       house?        @relation(fields: [house_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "reservation_object_ibfk_1")
+  room        room?         @relation(fields: [room_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "reservation_object_ibfk_2")
+  review      review[]
+
+  @@index([house_id], map: "house_id")
+  @@index([room_id], map: "room_id")
+}
+
+model review {
+  id                 Int                 @id @default(autoincrement())
+  user_id            Int?
+  object_id          Int?
+  rate               Int?                @db.TinyInt
+  text               String?             @db.VarChar(250)
+  date               DateTime?           @db.DateTime(0)
+  user               user?               @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "review_ibfk_1")
+  reservation_object reservation_object? @relation(fields: [object_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "review_ibfk_2")
+
+  @@index([object_id], map: "object_id")
+  @@index([user_id], map: "user_id")
+}
+
+model role {
+  id   Int     @id @default(autoincrement())
+  name String? @db.VarChar(50)
+  user user[]
+}
+
+model room {
+  id                 Int                  @id @default(autoincrement())
+  hotel_id           Int?
+  placeN             Int?                 @db.UnsignedSmallInt
+  status             room_status?
+  description        String?              @db.VarChar(250)
+  price              Int?                 @db.UnsignedSmallInt
+  reservation_object reservation_object[]
+  hotel              hotel?               @relation(fields: [hotel_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "room_ibfk_1")
+
+  @@index([hotel_id], map: "hotel_id")
+}
+
+model user {
+  id            Int             @id @default(autoincrement())
+  name          String?         @db.VarChar(50)
+  email         String?         @unique(map: "email") @db.VarChar(50)
+  password      String?         @db.VarChar(50)
+  role_id       Int?
+  order_history order_history[]
+  reservation   reservation[]
+  review        review[]
+  role          role?           @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_ibfk_1")
+
+  @@index([role_id], map: "role_id")
+}
+
+enum comfortplushouse_status {
+  true
+  false
+}
+
+enum room_status {
+  free
+  occupied
+}
+
+enum paycheck_payType {
+  cash
+  debit_card
+  online_wallet
+}
+
+enum reservation_status {
+  active
+  denied
+  end
+}
+
+enum house_status {
+  free
+  occupied
+}
